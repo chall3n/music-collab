@@ -32,3 +32,19 @@ body {
   transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
   pointer-events: none; /* Prevent interaction when hidden */
 }
+
+/* Hide the tldraw page selector (usually top-left) */
+.tlui-pages-menu {
+  display: none !important;
+}
+
+/* Hide the tldraw main menu zone (usually top-left, includes hamburger menu and its dropdown) */
+.tlui-menu-zone {
+  display: none !important;
+}
+
+/* As a fallback, or if the above are not specific enough, 
+   this targets a common container for top-left UI elements in tldraw. */
+.tlui-layout__top-left .tlui-buttons__horizontal {
+  display: none !important;
+}
