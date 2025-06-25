@@ -10,12 +10,30 @@ interface AudioFile {
 interface AudioState {
   audioFiles: AudioFile[];
   isUploading: boolean;
+  fetchAudioFiles: () => Promise<void>;
   uploadAudio: (file: File) => Promise<void>;
 }
 
 export const useAudioStore = create<AudioState>((set) => ({
   audioFiles: [],
   isUploading: false,
+
+  fetchAudioFiles: async () => {
+    try {
+      const { data, error } = await supabase.storage.from("audio").list();
+      if (error) throw error;
+
+      const audioFiles = data.map((file) => ({
+        id: crypto.randomUUID(),
+        filename: file.name,
+        url: supabase.storage.from("audio").getPublicUrl(file.name).data.publicUrl,
+      }));
+
+      set({ audioFiles });
+    } catch (error) {
+      console.error("Failed to fetch audio files:", error);
+    }
+  },
 
   uploadAudio: async (file: File) => {
     // temporary file size validation

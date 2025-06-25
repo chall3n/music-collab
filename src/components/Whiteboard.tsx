@@ -8,7 +8,7 @@ import { Rnd } from "react-rnd";
 import WaveformPlayer from "./WaveformPlayer";
 
 export default function Whiteboard() {
-  const { uploadAudio, audioFiles, isUploading } = useAudioStore();
+  const { fetchAudioFiles, uploadAudio, audioFiles, isUploading } = useAudioStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State for react-rnd component
@@ -17,6 +17,8 @@ export default function Whiteboard() {
 
   // Set initial position on the right side of the screen
   useEffect(() => {
+    fetchAudioFiles();
+
     const updatePosition = () => {
       setRndPosition({
         x: window.innerWidth - rndSize.width - 16,
