@@ -1,4 +1,5 @@
 "use client";
+  // Only one audio file should play at once, right now there can be multiple playing simultaneously
 
 import { useEffect, useRef, useState } from "react";
 
@@ -78,6 +79,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   }, [audioData, currentTime, duration]);
 
   // Audio event handlers
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
