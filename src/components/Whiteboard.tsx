@@ -19,6 +19,8 @@ export default function Whiteboard() {
   useEffect(() => {
     fetchAudioFiles();
 
+    //right now fetches all files, must be specific ones to the project later on
+
     const updatePosition = () => {
       setRndPosition({
         x: window.innerWidth - rndSize.width - 16,

@@ -1,6 +1,6 @@
 "use client";
   // Only one audio file should play at once, right now there can be multiple playing simultaneously
-
+  // Add User and Project persistence 
 import { useEffect, useRef, useState } from "react";
 
 interface WaveformPlayerProps {
