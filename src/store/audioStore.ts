@@ -81,3 +81,13 @@ export const useAudioStore = create<AudioState>((set) => ({
     }
   },
 }));
+
+interface GlobalAudioStore {
+  currentAudio: HTMLAudioElement | null;
+  setCurrentAudio: (audio: HTMLAudioElement | null) => void;
+}
+
+export const useGlobalAudioStore = create<GlobalAudioStore>((set) => ({
+  currentAudio: null,
+  setCurrentAudio: (audio) => set({ currentAudio: audio }),
+}));

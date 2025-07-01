@@ -2,6 +2,7 @@
   // Only one audio file should play at once, right now there can be multiple playing simultaneously
   // Add User and Project persistence 
 import { useEffect, useRef, useState } from "react";
+import { useGlobalAudioStore } from '../store/audioStore';
 
 interface WaveformPlayerProps {
   audioUrl: string;
@@ -19,6 +20,8 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [audioData, setAudioData] = useState<number[]>([]);
+
+  const { currentAudio, setCurrentAudio } = useGlobalAudioStore();
 
   // Generate fake waveform data for visualization
   useEffect(() => {
@@ -128,6 +131,10 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
       if (isPlaying) {
         audio.pause();
       } else {
+        if (currentAudio && currentAudio !== audio) {
+          currentAudio.pause();
+        }
+        setCurrentAudio(audio);
         await audio.play();
       }
     } catch (error) {
