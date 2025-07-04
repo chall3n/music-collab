@@ -82,6 +82,8 @@ export const useAudioStore = create<AudioState>((set) => ({
   },
 }));
 
+//ensures only one track plays at once
+//added Global interface
 interface GlobalAudioStore {
   currentAudio: HTMLAudioElement | null;
   setCurrentAudio: (audio: HTMLAudioElement | null) => void;
