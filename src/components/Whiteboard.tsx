@@ -7,6 +7,10 @@ import { useRef, useState, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import WaveformPlayer from "./WaveformPlayer";
 
+//need to figure out how to remove duplicate tldraw libraries
+//bundler misconfigred? importing same library multiple times
+//once as ES Module, once as CommonJS module
+
 export default function Whiteboard() {
   const { fetchAudioFiles, uploadAudio, audioFiles, isUploading } = useAudioStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
