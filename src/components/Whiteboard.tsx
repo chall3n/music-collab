@@ -1,11 +1,15 @@
 "use client";
 
-import { Tldraw } from "tldraw";
+import dynamic from "next/dynamic";
 import "tldraw/tldraw.css";
 import { useAudioStore } from "@/store/audioStore";
 import { useRef, useState, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import WaveformPlayer from "./WaveformPlayer";
+
+const Tldraw = dynamic(() => import('tldraw').then((mod) => mod.Tldraw), {
+  ssr: false,
+});
 
 //need to figure out how to remove duplicate tldraw libraries
 //bundler misconfigred? importing same library multiple times
