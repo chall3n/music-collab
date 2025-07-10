@@ -11,9 +11,7 @@ const Tldraw = dynamic(() => import('tldraw').then((mod) => mod.Tldraw), {
   ssr: false,
 });
 
-//need to figure out how to remove duplicate tldraw libraries
-//bundler misconfigred? importing same library multiple times
-//once as ES Module, once as CommonJS module
+//add auto key/bpm detection
 
 export default function Whiteboard() {
   const { fetchAudioFiles, uploadAudio, audioFiles, isUploading } = useAudioStore();
