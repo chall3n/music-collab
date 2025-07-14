@@ -72,6 +72,8 @@ export default function Whiteboard() {
     e.target.value = "";
   };
 
+  console.log("Audio files before rendering WaveformPlayer:", audioFiles);
+
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       {/* Hidden file input */}
@@ -135,6 +137,7 @@ export default function Whiteboard() {
                   key={file.id}
                   audioUrl={file.url}
                   fileName={file.filename}
+                  demoId={file.demoId} // Ensure demoId is passed here
                 />
               ))}
             </div>

@@ -3,15 +3,18 @@
   // Add User and Project persistence 
 import { useEffect, useRef, useState } from "react";
 import { useGlobalAudioStore } from '../store/audioStore';
+import { supabase } from "../lib/supabase"; // Supabase client
 
 interface WaveformPlayerProps {
   audioUrl: string;
   fileName: string;
+  demoId: string;
 }
 
 const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   audioUrl,
   fileName,
+  demoId,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -20,6 +23,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [audioData, setAudioData] = useState<number[]>([]);
+  const [stems, setStems] = useState<{ name: string; url: string }[]>([]);
 
   const { currentAudio, setCurrentAudio } = useGlobalAudioStore();
 
@@ -102,7 +106,12 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     const handleEnded = () => setIsPlaying(false);
 
     const handleError = (e: Event) => {
-      console.error("❌ Audio error:", e);
+      const audio = audioRef.current;
+      console.error("❌ Audio error:", e, {
+        src: audio?.src,
+        networkState: audio?.networkState,
+        readyState: audio?.readyState,
+      });
       setIsLoading(false);
     };
 
@@ -125,7 +134,10 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 
   const togglePlayPause = async () => {
     const audio = audioRef.current;
-    if (!audio || isLoading) return;
+    if (!audio || isLoading || !audioUrl) {
+      console.error("❌ Cannot play/pause. Audio is loading or audioUrl is invalid.");
+      return;
+    }
 
     try {
       if (isPlaying) {
@@ -161,6 +173,93 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const handleUploadStems = async (demoId: string, files: FileList) => {
+    const stemsMetadata = [];
+
+    for (const file of Array.from(files)) {
+      // Create dynamic file path based on demo ID
+      const filePath = `${demoId}/stems/${file.name}`;
+      console.log("Uploading file to:", filePath);
+
+      const { data, error } = await supabase.storage
+        .from("audio-demos")
+        .upload(filePath, file);
+
+      if (error) {
+        console.error("Error uploading stem:", error);
+        continue;
+      }
+
+      // Generate public URL for the uploaded file
+      const publicUrl = supabase.storage.from("audio-demos").getPublicUrl(filePath);
+      console.log("Generated public URL:", publicUrl.data.publicUrl);
+
+      stemsMetadata.push({ name: file.name, url: publicUrl.data.publicUrl });
+    }
+
+    console.log("Stems metadata before database update:", stemsMetadata);
+
+    // Test insert instead of update
+    const { error: insertError } = await supabase
+      .from("audioFiles")
+      .insert([{ id: demoId, stems: stemsMetadata }]);
+
+    if (insertError) {
+      console.error("Error inserting stems metadata:", insertError);
+    } else {
+      console.log("Successfully inserted stems metadata for demoId:", demoId);
+    }
+
+    fetchStems(); // Refresh stems list
+  };
+
+  // Add logging and fallback for undefined demoId and invalid audioUrl
+  useEffect(() => {
+    if (!demoId) {
+      console.error("❌ demoId is undefined. Cannot fetch stems.");
+      return;
+    }
+    fetchStems();
+  }, [demoId]);
+
+  useEffect(() => {
+    if (!audioUrl) {
+      console.error("❌ audioUrl is invalid or undefined. Cannot play audio.");
+    }
+  }, [audioUrl]);
+
+  // Update fetchStems to handle cases where demoId is undefined or no stems exist for the given demoId
+  const fetchStems = async () => {
+    if (!demoId) {
+      console.error("❌ demoId is undefined. Skipping fetchStems.");
+      setStems([]); // Clear stems to avoid displaying stale data
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("audioFiles")
+      .select("stems")
+      .eq("id", demoId);
+
+    if (error) {
+      console.error("Error fetching stems:", error);
+      setStems([]); // Clear stems on error
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("No stems found for demoId:", demoId);
+      setStems([]); // Gracefully handle no stems
+      return;
+    }
+
+    setStems(data[0]?.stems || []);
+  };
+
+  useEffect(() => {
+    fetchStems();
+  }, [demoId]);
+
   return (
     <div className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
       {/* Header */}
@@ -180,12 +279,18 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
             <span className="text-xs text-gray-500">Loading audio...</span>
           </div>
         ) : (
-          <canvas
-            ref={canvasRef}
-            onClick={handleCanvasClick}
-            className="w-full h-16 cursor-pointer rounded-md border border-gray-200 hover:border-blue-300 transition-colors"
-            style={{ display: "block" }}
-          />
+          audioUrl ? (
+            <canvas
+              ref={canvasRef}
+              onClick={handleCanvasClick}
+              className="w-full h-16 cursor-pointer rounded-md border border-gray-200 hover:border-blue-300 transition-colors"
+              style={{ display: "block" }}
+            />
+          ) : (
+            <div className="h-16 bg-red-100 rounded-md flex items-center justify-center">
+              <span className="text-xs text-red-500">Audio failed to load</span>
+            </div>
+          )
         )}
       </div>
 
@@ -226,6 +331,42 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
             </svg>
           )}
         </button>
+      </div>
+
+      {/* Upload Stems Button */}
+      <div className="mt-4">
+        <input
+          type="file"
+          multiple
+          onChange={(e) => {
+            if (e.target.files) {
+              handleUploadStems(demoId, e.target.files);
+            }
+          }}
+          style={{ display: "none" }}
+          id={`upload-stems-${demoId}`}
+        />
+        <button
+          onClick={() => document.getElementById(`upload-stems-${demoId}`)?.click()}
+          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Upload Stems
+        </button>
+      </div>
+
+      {/* Display Stems */}
+      <div className="mt-4">
+        <h4 className="text-sm font-medium text-gray-900 mb-2">Stems:</h4>
+        <ul className="list-disc list-inside">
+          {stems.map((stem) => (
+            <li key={stem.name} className="text-sm text-gray-700">
+              {stem.name} -{" "}
+              <a href={stem.url} download className="text-blue-500 hover:underline">
+                Download
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

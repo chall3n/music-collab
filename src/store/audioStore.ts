@@ -5,6 +5,7 @@ interface AudioFile {
   id: string;
   filename: string;
   url: string;
+  demoId?: string; // Added demoId property
 }
 
 interface AudioState {
@@ -69,6 +70,20 @@ export const useAudioStore = create<AudioState>((set) => ({
         filename: file.name,
         url: urlData.publicUrl,
       };
+
+      // Insert metadata into audioFiles table
+      const { data: insertData, error: insertError } = await supabase
+        .from("audiofiles")
+        .insert({
+          id: audioFile.id,
+          demoid: audioFile.id, // Updated column name to match table schema
+          audiourl: audioFile.url, // Updated column name to match table schema
+          created_at: new Date().toISOString(),
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
 
       set((state) => ({
         audioFiles: [...state.audioFiles, audioFile],
