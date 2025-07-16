@@ -8,13 +8,13 @@ import { supabase } from "../lib/supabase"; // Supabase client
 interface WaveformPlayerProps {
   audioUrl: string;
   fileName: string;
-  demoId: string;
+  demoid: string; // Updated to match Supabase schema
 }
 
 const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   audioUrl,
   fileName,
-  demoId,
+  demoid,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -173,16 +173,41 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleUploadStems = async (demoId: string, files: FileList) => {
+  const handleUploadStems = async (demoid: string, files: FileList) => {
+    if (!demoid) {
+      console.error("❌ demoid is undefined. Cannot upload stems.");
+      return;
+    }
+
+    console.log("🔍 Checking demoid:", demoid);
+
+    // Verify if demoid exists in the audiofiles table
+    const { data: demoData, error: demoError } = await supabase
+      .from("audiofiles")
+      .select("id")
+      .eq("id", demoid);
+
+    if (demoError) {
+      console.error("❌ Error verifying demoid existence:", demoError);
+      return;
+    }
+
+    if (!demoData || demoData.length === 0) {
+      console.warn("⚠️ demoid not found in audiofiles table:", demoid);
+      return;
+    }
+
+    console.log("✅ demoid exists in audiofiles table:", demoid);
+
     const stemsMetadata = [];
 
     for (const file of Array.from(files)) {
       // Create dynamic file path based on demo ID
-      const filePath = `${demoId}/stems/${file.name}`;
+      const filePath = `${demoid}/stems/${file.name}`;
       console.log("Uploading file to:", filePath);
 
       const { data, error } = await supabase.storage
-        .from("audio-demos")
+        .from("audio") // Correct bucket name
         .upload(filePath, file);
 
       if (error) {
@@ -191,7 +216,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
       }
 
       // Generate public URL for the uploaded file
-      const publicUrl = supabase.storage.from("audio-demos").getPublicUrl(filePath);
+      const publicUrl = supabase.storage.from("audio").getPublicUrl(filePath);
       console.log("Generated public URL:", publicUrl.data.publicUrl);
 
       stemsMetadata.push({ name: file.name, url: publicUrl.data.publicUrl });
@@ -199,15 +224,16 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 
     console.log("Stems metadata before database update:", stemsMetadata);
 
-    // Test insert instead of update
-    const { error: insertError } = await supabase
-      .from("audioFiles")
-      .insert([{ id: demoId, stems: stemsMetadata }]);
+    // Update stems metadata in the audiofiles table
+    const { error: updateError } = await supabase
+      .from("audiofiles")
+      .update({ stems: stemsMetadata })
+      .eq("id", demoid); // Ensure stems correspond to the correct demo
 
-    if (insertError) {
-      console.error("Error inserting stems metadata:", insertError);
+    if (updateError) {
+      console.error("Error updating stems metadata:", updateError);
     } else {
-      console.log("Successfully inserted stems metadata for demoId:", demoId);
+      console.log("Successfully updated stems metadata for demoid:", demoid);
     }
 
     fetchStems(); // Refresh stems list
@@ -215,12 +241,12 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 
   // Add logging and fallback for undefined demoId and invalid audioUrl
   useEffect(() => {
-    if (!demoId) {
-      console.error("❌ demoId is undefined. Cannot fetch stems.");
+    if (!demoid) {
+      console.error("❌ demoid is undefined. Cannot fetch stems.");
       return;
     }
     fetchStems();
-  }, [demoId]);
+  }, [demoid]);
 
   useEffect(() => {
     if (!audioUrl) {
@@ -228,18 +254,17 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     }
   }, [audioUrl]);
 
-  // Update fetchStems to handle cases where demoId is undefined or no stems exist for the given demoId
   const fetchStems = async () => {
-    if (!demoId) {
-      console.error("❌ demoId is undefined. Skipping fetchStems.");
+    if (!demoid) {
+      console.error("❌ demoid is undefined. Skipping fetchStems.");
       setStems([]); // Clear stems to avoid displaying stale data
       return;
     }
 
     const { data, error } = await supabase
-      .from("audioFiles")
+      .from("audiofiles")
       .select("stems")
-      .eq("id", demoId);
+      .eq("id", demoid);
 
     if (error) {
       console.error("Error fetching stems:", error);
@@ -248,7 +273,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     }
 
     if (!data || data.length === 0) {
-      console.warn("No stems found for demoId:", demoId);
+      console.warn("No stems found for demoid:", demoid);
       setStems([]); // Gracefully handle no stems
       return;
     }
@@ -258,7 +283,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 
   useEffect(() => {
     fetchStems();
-  }, [demoId]);
+  }, [demoid]);
 
   return (
     <div className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -340,14 +365,14 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
           multiple
           onChange={(e) => {
             if (e.target.files) {
-              handleUploadStems(demoId, e.target.files);
+              handleUploadStems(demoid, e.target.files);
             }
           }}
           style={{ display: "none" }}
-          id={`upload-stems-${demoId}`}
+          id={`upload-stems-${demoid}`}
         />
         <button
-          onClick={() => document.getElementById(`upload-stems-${demoId}`)?.click()}
+          onClick={() => document.getElementById(`upload-stems-${demoid}`)?.click()}
           className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
         >
           Upload Stems
