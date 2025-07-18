@@ -175,7 +175,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
 
   const handleUploadStems = async (demoid: string, files: FileList) => {
     if (!demoid) {
-      console.error("❌ demoid is undefined. Cannot upload stems.");
+      console.error("Invalid demoid: Ensure it is passed correctly from the parent component.");
       return;
     }
 
@@ -184,16 +184,16 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     // Verify if demoid exists in the audiofiles table
     const { data: demoData, error: demoError } = await supabase
       .from("audiofiles")
-      .select("id")
-      .eq("id", demoid);
+      .select("demoid")
+      .eq("demoid", demoid);
 
     if (demoError) {
-      console.error("❌ Error verifying demoid existence:", demoError);
+      console.error("Error verifying demoid:", demoError);
       return;
     }
 
     if (!demoData || demoData.length === 0) {
-      console.warn("⚠️ demoid not found in audiofiles table:", demoid);
+      console.error("demoid does not exist in audiofiles table:", demoid);
       return;
     }
 
@@ -202,24 +202,24 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     const stemsMetadata = [];
 
     for (const file of Array.from(files)) {
-      // Create dynamic file path based on demo ID
-      const filePath = `${demoid}/stems/${file.name}`;
-      console.log("Uploading file to:", filePath);
+      const timestamp = Date.now();
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const filename = `${timestamp}_${cleanName}`;
 
-      const { data, error } = await supabase.storage
-        .from("audio") // Correct bucket name
-        .upload(filePath, file);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("audio")
+        .upload(filename, file);
 
-      if (error) {
-        console.error("Error uploading stem:", error);
+      if (uploadError) {
+        console.error("Error uploading stem file:", uploadError);
         continue;
       }
 
-      // Generate public URL for the uploaded file
-      const publicUrl = supabase.storage.from("audio").getPublicUrl(filePath);
-      console.log("Generated public URL:", publicUrl.data.publicUrl);
+      const { data: urlData } = supabase.storage
+        .from("audio")
+        .getPublicUrl(filename);
 
-      stemsMetadata.push({ name: file.name, url: publicUrl.data.publicUrl });
+      stemsMetadata.push({ name: file.name, url: urlData.publicUrl });
     }
 
     console.log("Stems metadata before database update:", stemsMetadata);
@@ -228,12 +228,12 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
     const { error: updateError } = await supabase
       .from("audiofiles")
       .update({ stems: stemsMetadata })
-      .eq("id", demoid); // Ensure stems correspond to the correct demo
+      .eq("demoid", demoid); // Ensure stems correspond to the correct demoid
 
     if (updateError) {
       console.error("Error updating stems metadata:", updateError);
     } else {
-      console.log("Successfully updated stems metadata for demoid:", demoid);
+      console.log("✅ Stems metadata updated successfully");
     }
 
     fetchStems(); // Refresh stems list

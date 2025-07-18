@@ -134,10 +134,10 @@ export default function Whiteboard() {
             <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
               {audioFiles.map((file) => (
                 <WaveformPlayer
-                  key={file.id}
+                  key={file.demoid} // Ensure consistent lowercase usage
                   audioUrl={file.url}
                   fileName={file.filename}
-                  demoId={file.demoId} // Ensure demoId is passed here
+                  demoid={file.demoid} // Ensure consistent lowercase usage
                 />
               ))}
             </div>

@@ -2,10 +2,9 @@ import { create } from "zustand";
 import { supabase } from "@/lib/supabase";
 
 interface AudioFile {
-  id: string;
+  demoid: string; // Ensure consistent lowercase usage
   filename: string;
   url: string;
-  demoId?: string; // Added demoId property
 }
 
 interface AudioState {
@@ -25,7 +24,7 @@ export const useAudioStore = create<AudioState>((set) => ({
       if (error) throw error;
 
       const audioFiles = data.map((file) => ({
-        id: crypto.randomUUID(),
+        demoid: crypto.randomUUID(),
         filename: file.name,
         url: supabase.storage.from("audio").getPublicUrl(file.name).data.publicUrl,
       }));
@@ -66,7 +65,7 @@ export const useAudioStore = create<AudioState>((set) => ({
         .getPublicUrl(filename);
 
       const audioFile: AudioFile = {
-        id: crypto.randomUUID(),
+        demoid: crypto.randomUUID(),
         filename: file.name,
         url: urlData.publicUrl,
       };
@@ -75,9 +74,8 @@ export const useAudioStore = create<AudioState>((set) => ({
       const { data: insertData, error: insertError } = await supabase
         .from("audiofiles")
         .insert({
-          id: audioFile.id,
-          demoid: audioFile.id, // Updated column name to match table schema
-          audiourl: audioFile.url, // Updated column name to match table schema
+          demoid: audioFile.demoid, // Ensure consistent lowercase usage
+          audiourl: audioFile.url, // Updated column name to match schema
           created_at: new Date().toISOString(),
         });
 
