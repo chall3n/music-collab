@@ -1,6 +1,11 @@
 "use client";
-  // Only one audio file should play at once, right now there can be multiple playing simultaneously
+  // (DONE) Only one audio file should play at once, right now there can be multiple playing simultaneously 
   // Add User and Project persistence 
+  /* Maybe make file to manually upload to Supabase without all button/interface logic to test 
+      Supabase audio and stem upload logic
+          -then copy code into TLDraw once it works
+
+  */
 import { useEffect, useRef, useState } from "react";
 import { useGlobalAudioStore } from '../store/audioStore';
 import { supabase } from "../lib/supabase"; // Supabase client
