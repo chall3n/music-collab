@@ -1,0 +1,6 @@
+graph TD
+    A[User] -->|Uploads Audio| B[Audio Bucket]
+    B -->|Stores Metadata| C[Supabase Database]
+    C -->|Fetches Data| D[WaveformPlayer Component]
+    D -->|Displays Audio| E[UI]
+    E -->|Interacts| A

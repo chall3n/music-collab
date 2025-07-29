@@ -7,14 +7,13 @@ import { useRef, useState, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import WaveformPlayer from "./WaveformPlayer";
 
-const Tldraw = dynamic(() => import('tldraw').then((mod) => mod.Tldraw), {
+const Tldraw = dynamic(() => import("tldraw").then((mod) => mod.Tldraw), {
   ssr: false,
 });
 
-//add auto key/bpm detection
-
 export default function Whiteboard() {
-  const { fetchAudioFiles, uploadAudio, audioFiles, isUploading } = useAudioStore();
+  // Updated to use the new store structure and function names
+  const { fetchDemos, uploadDemo, demos, isUploading } = useAudioStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State for react-rnd component
@@ -23,9 +22,8 @@ export default function Whiteboard() {
 
   // Set initial position on the right side of the screen
   useEffect(() => {
-    fetchAudioFiles();
-
-    //right now fetches all files, must be specific ones to the project later on
+    // Fetch demos when the component mounts
+    fetchDemos();
 
     const updatePosition = () => {
       setRndPosition({
@@ -34,32 +32,24 @@ export default function Whiteboard() {
       });
     };
 
-    // Set initial position
     updatePosition();
+    window.addEventListener("resize", updatePosition);
 
-    // Update position on window resize
-    const handleResize = () => updatePosition();
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, [rndSize.width]);
+    return () => window.removeEventListener("resize", updatePosition);
+  }, [rndSize.width, fetchDemos]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    console.log(`Selected ${files.length} files`);
+    console.log(`Selected ${files.length} files for demo upload`);
 
     for (const file of Array.from(files)) {
       if (file.type.startsWith("audio/")) {
-        console.log(
-          `Processing: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(
-            2
-          )}MB, Type: ${file.type}`
-        );
         try {
-          await uploadAudio(file);
-          console.log(`✅ Successfully uploaded: ${file.name}`);
+          // Use the new uploadDemo function
+          await uploadDemo(file);
+          console.log(`✅ Successfully uploaded demo: ${file.name}`);
         } catch (error) {
           console.error(`❌ Failed to upload ${file.name}:`, error);
         }
@@ -67,16 +57,12 @@ export default function Whiteboard() {
         console.log(`⚠️ Skipped non-audio file: ${file.name} (${file.type})`);
       }
     }
-
-    // Clear input so same file can be selected again
     e.target.value = "";
   };
 
-  console.log("Audio files before rendering WaveformPlayer:", audioFiles);
-
   return (
     <div style={{ position: "fixed", inset: 0 }}>
-      {/* Hidden file input */}
+      {/* Hidden file input for uploading demos */}
       <input
         ref={fileInputRef}
         type="file"
@@ -85,13 +71,10 @@ export default function Whiteboard() {
         onChange={handleFileSelect}
         style={{ display: "none" }}
       />
-      {/* Simple Upload Button */}
+      {/* Upload Button for Demos */}
       <div className="absolute top-4 left-4 z-50">
         <button
-          onClick={() => {
-            console.log("Upload button clicked");
-            fileInputRef.current?.click();
-          }}
+          onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
           className={`px-4 py-2 rounded text-white font-medium ${
             isUploading
@@ -99,17 +82,16 @@ export default function Whiteboard() {
               : "bg-green-600 hover:bg-green-700"
           }`}
         >
-          {isUploading ? "Uploading..." : "📁 Upload Audio"}
+          {isUploading ? "Uploading..." : "📁 Upload Demo"}
         </button>
-      </div>{" "}
-      {/* Audio Files List with Waveforms - Resizable and Draggable */}
-      {audioFiles.length > 0 && (
+      </div>
+
+      {/* Demos List with Waveforms - Resizable and Draggable */}
+      {demos.length > 0 && (
         <Rnd
           size={rndSize}
           position={rndPosition}
-          onDragStop={(e, d) => {
-            setRndPosition({ x: d.x, y: d.y });
-          }}
+          onDragStop={(e, d) => setRndPosition({ x: d.x, y: d.y })}
           onResizeStop={(e, direction, ref, delta, position) => {
             setRndSize({
               width: parseInt(ref.style.width),
@@ -127,23 +109,26 @@ export default function Whiteboard() {
         >
           <div className="bg-white p-4 rounded shadow-lg h-full flex flex-col">
             <h3 className="font-bold mb-2 truncate drag-handle cursor-move">
-              {audioFiles.length === 1
-                ? audioFiles[0].filename
-                : `Audio Demos (${audioFiles.length})`}
+              {demos.length === 1
+                ? demos[0].name
+                : `Audio Demos (${demos.length})`}
             </h3>
             <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
-              {audioFiles.map((file) => (
+              {/* Map over demos and render a player for each */}
+              {demos.map((demo) => (
                 <WaveformPlayer
-                  key={file.demoid} // Ensure consistent lowercase usage
-                  audioUrl={file.url}
-                  fileName={file.filename}
-                  demoid={file.demoid} // Ensure consistent lowercase usage
+                  key={demo.id}
+                  audioUrl={demo.master_url}
+                  fileName={demo.name}
+                  demoid={demo.id}
+                  stems={demo.stems}
                 />
               ))}
             </div>
           </div>
         </Rnd>
       )}
+
       {/* tldraw Canvas */}
       <Tldraw />
     </div>
