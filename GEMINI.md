@@ -113,3 +113,18 @@ This section summarizes the changes made to implement the plan above.
 *   **Upload Logic Removed:** The responsibility for uploading stems was removed from this component.
 *   **Stem Upload Trigger:** A new handler (`handleStemUpload`) was added to call the `uploadStem` action from the store, cleanly separating the UI from the business logic.
 *   **Display Logic:** The component now maps over the `stems` prop to display the list of associated stems.
+
+---
+
+## Collaboration Feature Plan
+
+This section outlines the future plan to add multi-user collaboration features to the application.
+
+1.  **Phase 0: User Authentication:** Implement a login/signup system using Supabase Auth. This is the foundation that gives every user a unique identity (`auth.uid()`).
+2.  **Phase 1: Database Structure:** Create three new database entities:
+    *   A `projects` table to hold the name of each session.
+    *   A `project_users` table to link users to the projects they are members of.
+    *   Add a `project_id` column to our existing `demos` table to link each audio file to a specific project.
+3.  **Phase 2: State Management:** Create a new `useProjectStore` in Zustand to manage the list of projects and track the currently active one. We would then modify `useAudioStore` to only fetch and upload demos for that active project.
+4.  **Phase 3: UI Integration:** Build a `ProjectSidebar` component where users can see their projects and switch between them. The main `Whiteboard` would then react to the selection, loading the correct demos.
+5.  **Phase 4: Real-time Sync:** Leverage Supabase Realtime subscriptions so that when one user uploads a demo, it instantly appears for all other users in the same project without needing a page refresh.

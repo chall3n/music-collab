@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Play, Pause } from "lucide-react";
 import { useGlobalAudioStore, useAudioStore } from "../store/audioStore";
 
 // Updated to reflect the new data model from the store
@@ -192,13 +193,10 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
         <button
           onClick={togglePlayPause}
           disabled={isLoading}
-          className="flex items-center justify-center w-10 h-10 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full transition-colors shadow-md hover:shadow-lg"
+          className="flex items-center justify-center w-12 h-12 bg-transparent text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 transition-colors focus:outline-none"
+          aria-label={isPlaying ? "Pause" : "Play"}
         >
-          {isPlaying ? (
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" /></svg>
-          ) : (
-            <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
-          )}
+          {isPlaying ? <Pause size={32} /> : <Play size={32} />}
         </button>
       </div>
 

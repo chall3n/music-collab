@@ -24,7 +24,7 @@ interface AudioState {
   uploadStem: (file: File, parentDemoId: string) => Promise<void>;
 }
 
-export const useAudioStore = create<AudioState>((set, get) => ({
+export const useAudioStore = create<AudioState>((set) => ({
   demos: [],
   isUploading: false,
 
