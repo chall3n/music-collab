@@ -128,3 +128,5 @@ This section outlines the future plan to add multi-user collaboration features t
 3.  **Phase 2: State Management:** Create a new `useProjectStore` in Zustand to manage the list of projects and track the currently active one. We would then modify `useAudioStore` to only fetch and upload demos for that active project.
 4.  **Phase 3: UI Integration:** Build a `ProjectSidebar` component where users can see their projects and switch between them. The main `Whiteboard` would then react to the selection, loading the correct demos.
 5.  **Phase 4: Real-time Sync:** Leverage Supabase Realtime subscriptions so that when one user uploads a demo, it instantly appears for all other users in the same project without needing a page refresh.
+
+## Make Demo Ready by Friday 
