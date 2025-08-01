@@ -225,7 +225,10 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
             {stems.map((stem) => (
               <li key={stem.id} className="text-sm text-gray-700">
                 {stem.name} -{" "}
-                <a href={stem.url} download className="text-blue-500 hover:underline">
+                <a
+                  href={`/api/download?fileUrl=${encodeURIComponent(stem.url)}`}
+                  className="text-blue-500 hover:underline"
+                >
                   Download
                 </a>
               </li>
