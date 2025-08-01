@@ -20,23 +20,20 @@ export default function Whiteboard() {
   const [rndSize, setRndSize] = useState({ width: 440, height: 400 });
   const [rndPosition, setRndPosition] = useState({ x: 0, y: 16 });
 
-  // Set initial position on the right side of the screen
+  // Fetch demos when the component mounts (runs once)
   useEffect(() => {
-    // Fetch demos when the component mounts
     fetchDemos();
+  }, [fetchDemos]);
 
-    const updatePosition = () => {
+  // Calculate initial position on the right side of the screen (runs once)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
       setRndPosition({
         x: window.innerWidth - rndSize.width - 16,
         y: 16,
       });
-    };
-
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-
-    return () => window.removeEventListener("resize", updatePosition);
-  }, [rndSize.width, fetchDemos]);
+    }
+  }, []); // Empty dependency array means it runs once on mount
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -72,14 +69,14 @@ export default function Whiteboard() {
         style={{ display: "none" }}
       />
       {/* Upload Button for Demos */}
-      <div className="absolute top-4 left-4 z-50">
+      <div className="absolute mt-8 ml-8 z-50">
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className={`px-4 py-2 rounded text-white font-medium ${
+          className={`px-4 py-2 rounded text-white font-medium transition-transform duration-200 ease-in-out hover:scale-105 ${
             isUploading
               ? "bg-gray-400 cursor-not-allowed"
-              : "bg-green-600 hover:bg-green-700"
+              : "animated-background bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500"
           }`}
         >
           {isUploading ? "Uploading..." : "📁 Upload Demo"}

@@ -211,7 +211,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
         />
         <button
           onClick={() => document.getElementById(`upload-stems-${demoid}`)?.click()}
-          className="mt-2 w-full bg-indigo-500 text-white px-4 py-2 rounded text-sm hover:bg-indigo-600"
+          className="mt-2 w-full text-white px-4 py-2 rounded-xl text-sm animated-background bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500 transition-transform duration-200 ease-in-out hover:scale-102"
         >
           Upload Stems
         </button>

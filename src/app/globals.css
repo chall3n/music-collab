@@ -6,7 +6,7 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-background: var(--backgrßound);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -23,6 +23,26 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.animated-background {
+    background-size: 200%;
+
+    -webkit-animation: animation 5s ease infinite;
+    -moz-animation: animation 5s ease infinite;
+    animation: animation 5s ease infinite;
+
+}
+
+@keyframes animation {
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+    
+    50% {
+        background-position: 100% 50%;
+    }
 }
 
 /* Hide the tldraw style panel (color pickers, size selectors, etc.) temporary to reimplement later if needed */
