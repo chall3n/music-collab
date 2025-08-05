@@ -1,93 +1,3 @@
-# Music Collab App Refactor Plan
-
-This document outlines the plan to refactor the application to properly handle demos and their associated stems.
-
-## The Evolved Plan: Handling Demos and Stems
-
-This requires a slight evolution of our data model and logic. The core plan is still correct, but we need to introduce the concept of a parent-child relationship.
-
-### 1. Evolved Data Model (in Supabase)
-
-You'll need two tables to manage this relationship cleanly:
-
-**Table 1: `demos`** (This is what `audiofiles` should probably be renamed to)
-
-*   `id`: `uuid` (Primary Key, your `demoid`)
-*   `name`: `text` (The original filename, e.g., "cool_song_idea.wav")
-*   `master_url`: `text` (The public URL to the main demo file in Storage)
-*   `created_at`: `timestamp`
-
-**Table 2: `stems`**
-
-*   `id`: `uuid` (Primary Key, its own unique ID)
-*   `demo_id`: `uuid` (A foreign key that references `demos.id`. This is the crucial link.)
-*   `name`: `text` (e.g., "drums.wav", "bass.wav")
-*   `url`: `text` (The public URL to the stem file in Storage)
-*   `created_at`: `timestamp`
-
-**Why two tables?** This is a classic one-to-many relationship. One `demo` can have many `stems`. This structure is far more robust and scalable than trying to cram everything into one table.
-
-### 2. Evolved `AudioState` (in Zustand)
-
-Your state needs to reflect this structure. Instead of a flat list, you want an object that can hold the main file and its associated stems.
-
-```typescript
-interface Stem {
-  id: string;
-  name: string;
-  url: string;
-}
-
-interface Demo {
-  id: string; // This is the demoid
-  name: string;
-  master_url: string;
-  stems: Stem[]; // An array of its stems
-}
-
-interface AudioState {
-  demos: Demo[];
-  isUploading: boolean;
-  fetchDemos: () => Promise<void>;
-  uploadDemo: (file: File) => Promise<void>;
-  uploadStem: (file: File, parentDemoId: string) => Promise<void>; // <-- New Action
-}
-```
-
-### 3. Evolved Actions
-
-**`uploadDemo` (formerly `uploadAudio`)**
-
-This stays mostly the same as the "Write" operation we discussed, but it now creates a record in the `demos` table.
-
-1.  Generate unique filename, upload to Storage, get URL.
-2.  Generate a new `id` (demoid).
-3.  Insert a new row into the `demos` table.
-4.  Add the new `Demo` object (with an empty `stems` array) to the local state.
-
-**`uploadStem` (The New Action)**
-
-This is the key to your question.
-
-1.  It takes two arguments: the `file` and the `parentDemoId`.
-2.  Generate unique filename, upload to Storage, get URL.
-3.  Generate a new `id` for the stem itself.
-4.  Insert a new row into the `stems` table. Crucially, you set the `demo_id` column to the `parentDemoId` you passed into the function.
-5.  Find the corresponding demo in the local Zustand state and add the new `Stem` object to its `stems` array.
-
-**`fetchDemos` (formerly `fetchAudioFiles`)**
-
-This becomes slightly more complex, as it needs to fetch from both tables and combine the data.
-
-1.  First, query the `demos` table to get all the parent demos.
-2.  Then, query the `stems` table to get all the stems.
-3.  Now, on the client-side, loop through the demos and for each demo, find all the stems from the second query whose `demo_id` matches the current demo's `id`.
-4.  Assemble the final `Demo[]` array with the nested `stems` and set the state.
-
-This approach correctly models the relationship, ensures each entity has a stable ID, and allows you to upload and associate stems with their parent demo cleanly.
-
----
-
 ## Refactor Summary (Post-Implementation)
 
 This section summarizes the changes made to implement the plan above.
@@ -129,4 +39,65 @@ This section outlines the future plan to add multi-user collaboration features t
 4.  **Phase 3: UI Integration:** Build a `ProjectSidebar` component where users can see their projects and switch between them. The main `Whiteboard` would then react to the selection, loading the correct demos.
 5.  **Phase 4: Real-time Sync:** Leverage Supabase Realtime subscriptions so that when one user uploads a demo, it instantly appears for all other users in the same project without needing a page refresh.
 
-## Make Demo Ready by Friday 
+---
+
+## API Refactor Plan: Efficiently Fetching Demos and Stems
+
+**Objective:** To improve performance and simplify frontend logic by replacing the current client-side data fetching in `fetchDemos` with a dedicated server-side API endpoint. This moves the work of combining `demos` and `stems` from the user's browser to our backend.
+
+---
+
+### **Phase 1: Create the Backend API Endpoint**
+
+1.  **Create the API Route File:**
+    *   Create a new file at: `src/app/api/demos/route.ts`.
+
+2.  **Implement the Server-Side Logic:**
+    *   Define an asynchronous `GET` function that will be executed on the server.
+    *   Inside `GET`, perform the following steps:
+        a. **Fetch Demos:** Make an async call to Supabase to `select * from demos`.
+        b. **Fetch Stems:** Make another async call to Supabase to `select * from stems`.
+        c. **Combine Data:** On the server, create the final nested data structure. Use a `map` function on the `demosData` array. For each `demo`, filter the `stemsData` array to find all stems where `stem.demo_id` matches `demo.id`.
+        d. **Return Response:** If successful, send the combined, nested array back to the client as a JSON response with a `200 OK` status.
+        e. **Error Handling:** Wrap the logic in a `try...catch` block. If any part of the process fails, return a `500 Internal Server Error` response with an error message.
+
+---
+
+### **Phase 2: Refactor the Frontend `audioStore`**
+
+1.  **Target the `fetchDemos` Action:**
+    *   Open the file: `src/store/audioStore.ts`.
+    *   Locate the `fetchDemos` function.
+
+2.  **Simplify the Implementation:**
+    *   **Remove Old Logic:** Delete the two separate `supabase.from(...)` calls for `demos` and `stems`. Remove the client-side logic that combines them.
+    *   **Add New Logic:** Replace the deleted code with a single `try...catch` block containing:
+        a. **Fetch from API:** Make a single `fetch` call to our new endpoint: `const response = await fetch('/api/demos');`.
+        b. **Process Response:** Check if `response.ok`. If not, throw an error.
+        c. **Set State:** Parse the JSON from the response (`const data = await response.json();`) and update the state directly with this pre-packaged data: `set({ demos: data });`.
+    *   The entire `fetchDemos` function body should be significantly shorter and simpler.
+
+---
+
+## User Authentication Implementation Summary
+
+This section summarizes the implementation of a complete user authentication flow using Supabase and the resolution of a critical bug in the password reset process.
+
+### 1. Core Authentication Setup
+
+*   **Dependencies:** Installed `@supabase/auth-helpers-nextjs` and `@supabase/auth-ui-react` to integrate Supabase authentication with the Next.js application.
+*   **Login Page:** Created a new route at `/login` that utilizes Supabase's pre-built `<Auth>` component to provide a ready-made UI for email/password and social logins (GitHub, Google).
+*   **Callback Route:** Implemented a required server-side API route at `/auth/callback` for Supabase to securely complete the authentication handshake after a user logs in.
+*   **Page Protection:** The main page (`/`) was updated to be a protected route. It now checks for an active user session and automatically redirects any unauthenticated users to the `/login` page, ensuring only logged-in users can access the core application.
+
+### 2. Password Reset Bug and Fix
+
+*   **The Issue:** A critical flaw was identified where clicking the password reset link in the confirmation email led to an infinite loop. The link redirected to the generic `/login` page, which was not configured to handle the password recovery token in the URL, thus preventing the user from ever seeing the password reset form.
+
+*   **The Solution:**
+    1.  **Dedicated Reset Page:** A new page was created at `/reset-password`. This page uses the same `<Auth>` component but is explicitly configured with `view="update_password"` to render the correct form.
+    2.  **Email Template Update:** The "Reset Password" email template in the Supabase dashboard was updated to send users to the new `/reset-password` URL instead of the old `/login` URL.
+    3.  **Production-Ready URLs:** The Supabase project's **URL Configuration** was properly set up to handle both production and development environments. The production domain was set as the main **Site URL**, and `http://localhost:3000` was added to the list of allowed **Redirect URLs**. This ensures the authentication and password reset flows work seamlessly whether running locally or when deployed.
+
+## BUT...
+resetting password just logs the user in without any resetting of passwords. 

@@ -1,61 +1,54 @@
-"use client";
-
-// import { useEffect, useState } from "react";
-// import { supabase } from "@/lib/supabase";
-import Whiteboard from "../components/Whiteboard";
-
-// interface Project {
-//   id: number;
-//   name: string;
-//   created_at: string;
-//   created_by: string;
-// }
+'use client'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Whiteboard from '../components/Whiteboard'
+import type { User } from '@supabase/supabase-js'
 
 export default function Home() {
-  // const [projects, setProjects] = useState<Project[]>([]);
-  // const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClientComponentClient()
 
-  // useEffect(() => {
-  //   getProjects();
-  // }, []);
+  useEffect(() => {
+    async function getUser() {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
 
-  // async function getProjects() {
-  //   try {
-  //     console.log("Fetching projects...");
-  //     // Log the exact table name we're querying
-  //     console.log("Table name:", "projects");
-  //     const { data, error } = await supabase.from("projects").select("*");
+    okaygetUser()
+  }, [supabase])
 
-  //     if (error) {
-  //       console.error("Supabase error:", error);
-  //       throw error;
-  //     }
-  //     console.log("Received data:", data);
-  //     setProjects(data || []);
-  //   } catch (error) {
-  //     console.error("Error loading projects:", error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    }
+  }, [loading, user, router])
 
-  // if (loading) return <div>Loading...</div>;
-  return <Whiteboard />;
-  // return (
-  //   <main className="p-8">
-  //     <h1 className="text-2xl font-bold mb-4">Music Collab Projects</h1>
-  //     {projects.length === 0 ? (
-  //       <p>No projects yet. Add one in your Supabase dashboard!</p>
-  //     ) : (
-  //       <ul>
-  //         {projects.map((project) => (
-  //           <li key={project.id} className="mb-2">
-  //             {project.name} -{" "}
-  //             {new Date(project.created_at).toLocaleDateString()}
-  //           </li>
-  //         ))}
-  //       </ul>
-  //     )}
-  //   </main>
-  // );
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (!user) {
+    return null // or a loading spinner, since the redirect will happen in useEffect
+  }
+
+  return (
+    <div>
+      <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 10 }}>
+        <p style={{ marginRight: '1rem', display: 'inline' }}>{user.email}</p>
+        <button onClick={handleSignOut} style={{ padding: '8px 12px', cursor: 'pointer' }}>
+          Sign Out
+        </button>
+      </div>
+      <Whiteboard />
+    </div>
+  )
 }
