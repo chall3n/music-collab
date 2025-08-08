@@ -64,57 +64,39 @@ export const useAudioStore = create<AudioState>((set) => ({
   /**
    * Uploads a new primary demo file.
    */
-  uploadDemo: async (file: File) => {
-    if (file.size > 100 * 1024 * 1024) {
-      throw new Error("File size must be less than 100MB");
-    }
-    if (!file.type.startsWith("audio/")) {
-      throw new Error("File must be an audio file");
-    }
-
-    try {
-      set({ isUploading: true });
-
-      const demoId = crypto.randomUUID();
-      const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-      const filename = `${demoId}/${cleanName}`;
-
-      // 1. Upload the master audio file to storage
-      const { error: uploadError } = await supabase.storage
-        .from("audio")
-        .upload(filename, file);
-      if (uploadError) throw uploadError;
-
-      // 2. Get the public URL
-      const { data: urlData } = supabase.storage
-        .from("audio")
-        .getPublicUrl(filename);
-
-      const newDemo: Demo = {
-        id: demoId,
-        name: file.name,
-        master_url: urlData.publicUrl,
-        stems: [],
-      };
-
-      // 3. Insert metadata into the 'demos' table
-      const { error: insertError } = await supabase.from("demos").insert({
-        id: newDemo.id,
-        name: newDemo.name,
-        master_url: newDemo.master_url,
+  uploadDemo: async (file) => {
+    const demoId = `demo_${uuidv4()}`;
+    const { data, error } = await supabase.storage
+      .from('demos')
+      .upload(`${demoId}/${file.name}`, file, {
+        cacheControl: '3600',
+        upsert: false,
       });
-      if (insertError) throw insertError;
 
-      // 4. Update the local state
-      set((state) => ({
-        demos: [...state.demos, newDemo],
-        isUploading: false,
-      }));
-    } catch (error) {
-      set({ isUploading: false });
-      console.error("Demo upload failed:", error);
+    if (error) {
+      console.error('Error uploading file:', error);
       throw error;
     }
+
+    const { data: demoRecord, error: recordError } = await supabase
+      .from('demos')
+      .insert([
+        {
+          id: demoId,
+          name: file.name,
+          master_url: data.path,
+        },
+      ])
+      .select()
+      .single();
+
+    if (recordError) {
+      console.error('Error creating demo record:', recordError);
+      throw recordError;
+    }
+
+    set((state) => ({ demos: [...state.demos, demoRecord] }));
+    return demoRecord; // Return the new demo
   },
 
   /**

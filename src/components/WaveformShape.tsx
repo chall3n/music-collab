@@ -1,5 +1,7 @@
 
-import { BaseBoxShapeUtil, TLBaseShape, Tldraw } from 'tldraw'
+import { BaseBoxShapeUtil, TLBaseShape } from 'tldraw'
+import WaveformPlayer from './WaveformPlayer'
+import { useAudioStore } from '@/store/audioStore'
 
 // A type for our custom shape
 export type WaveformShape = TLBaseShape<
@@ -15,33 +17,39 @@ export type WaveformShape = TLBaseShape<
 export class WaveformShapeUtil extends BaseBoxShapeUtil<WaveformShape> {
 	static override type = 'waveform' as const
 
-	override canResize = (shape: WaveformShape) => true
-	override canBind = (shape: WaveformShape) => true
+	override canResize = () => true
+	override canBind = () => true
 
 	// Default props
 	override getDefaultProps(): WaveformShape['props'] {
 		return {
 			w: 300,
-			h: 120,
+			h: 400,
 			assetId: null,
 		}
 	}
 
-	// Render method
-	override render(shape: WaveformShape) {
+	// Component
+	override component(shape: WaveformShape) {
+		const { demos } = useAudioStore()
+		const demo = demos.find((d) => d.id === shape.props.assetId)
+
+		if (!demo) {
+			return (
+				<div style={{ width: shape.props.w, height: shape.props.h, backgroundColor: '#efefef', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+					<p>Loading...</p>
+				</div>
+			)
+		}
+
 		return (
-			<div
-				style={{
-					width: shape.props.w,
-					height: shape.props.h,
-					backgroundColor: 'lightblue',
-					border: '1px solid black',
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'center',
-				}}
-			>
-				<p>Waveform Player Placeholder</p>
+			<div style={{ width: shape.props.w, height: shape.props.h, overflow: 'hidden' }}>
+				<WaveformPlayer
+					audioUrl={demo.master_url}
+					fileName={demo.name}
+					demoid={demo.id}
+					stems={demo.stems}
+				/>
 			</div>
 		)
 	}

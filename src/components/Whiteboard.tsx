@@ -1,133 +1,105 @@
+
 "use client";
 
 import dynamic from "next/dynamic";
 import "tldraw/tldraw.css";
 import { useAudioStore } from "@/store/audioStore";
-import { useRef, useState, useEffect } from "react";
-import { Rnd } from "react-rnd";
-import WaveformPlayer from "./WaveformPlayer";
+import { useRef, useEffect } from "react";
+import { WaveformShapeUtil } from "./WaveformShape";
+import { useEditor } from "tldraw";
 
-const Tldraw = dynamic(() => import("tldraw").then((mod) => mod.Tldraw), {
-  ssr: false,
-});
+const Tldraw = dynamic(
+	() => import("tldraw").then((mod) => mod.Tldraw),
+	{ ssr: false }
+);
+
+const customShapeUtils = [WaveformShapeUtil];
+
+function UI() {
+	const editor = useEditor();
+	const { demos, uploadDemo, isUploading } = useAudioStore();
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		const existingWaveformIds = editor
+			.getCurrentPageShapes()
+			.filter((shape) => shape.type === 'waveform')
+			.map((shape) => shape.props.assetId);
+
+		demos.forEach((demo, i) => {
+			if (!existingWaveformIds.includes(demo.id)) {
+				editor.createShape({
+					type: 'waveform',
+					x: 150 * i,
+					y: 150,
+					props: { assetId: demo.id },
+				});
+			}
+		});
+	}, [demos, editor]);
+
+	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const files = e.target.files;
+		if (!files) return;
+
+		for (const file of Array.from(files)) {
+			if (file.type.startsWith("audio/")) {
+				try {
+					const newDemo = await uploadDemo(file);
+					if (newDemo) {
+						editor.createShape({
+							type: "waveform",
+							props: { assetId: newDemo.id },
+						});
+					}
+				} catch (error) {
+					console.error(`❌ Failed to upload ${file.name}:`, error);
+				}
+			} else {
+				console.log(`⚠️ Skipped non-audio file: ${file.name} (${file.type})`);
+			}
+		}
+		e.target.value = "";
+	};
+
+	return (
+		<div className="absolute mt-8 ml-8 z-50">
+			<input
+				ref={fileInputRef}
+				type="file"
+				accept="audio/*"
+				multiple
+				onChange={handleFileSelect}
+				style={{ display: "none" }}
+			/>
+			<button
+				onClick={() => fileInputRef.current?.click()}
+				disabled={isUploading}
+				className={`px-4 py-2 rounded text-white font-medium transition-transform duration-200 ease-in-out hover:scale-105 ${
+					isUploading
+						? "bg-gray-400 cursor-not-allowed"
+						: "animated-background bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500"
+				}`}
+			>
+				{isUploading ? "Uploading..." : "📁 Upload Demo"}
+			</button>
+		</div>
+	);
+}
 
 export default function Whiteboard() {
-  // Updated to use the new store structure and function names
-  const { fetchDemos, uploadDemo, demos, isUploading } = useAudioStore();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+	const { fetchDemos } = useAudioStore();
 
-  // State for react-rnd component
-  const [rndSize, setRndSize] = useState({ width: 440, height: 400 });
-  const [rndPosition, setRndPosition] = useState({ x: 0, y: 16 });
+	useEffect(() => {
+		fetchDemos();
+	}, [fetchDemos]);
 
-  // Fetch demos when the component mounts (runs once)
-  useEffect(() => {
-    fetchDemos();
-  }, [fetchDemos]);
-
-  // Calculate initial position on the right side of the screen (runs once)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setRndPosition({
-        x: window.innerWidth - rndSize.width - 16,
-        y: 16,
-      });
-    }
-  }, []); // Empty dependency array means it runs once on mount
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    console.log(`Selected ${files.length} files for demo upload`);
-
-    for (const file of Array.from(files)) {
-      if (file.type.startsWith("audio/")) {
-        try {
-          // Use the new uploadDemo function
-          await uploadDemo(file);
-          console.log(`✅ Successfully uploaded demo: ${file.name}`);
-        } catch (error) {
-          console.error(`❌ Failed to upload ${file.name}:`, error);
-        }
-      } else {
-        console.log(`⚠️ Skipped non-audio file: ${file.name} (${file.type})`);
-      }
-    }
-    e.target.value = "";
-  };
-
-  return (
-    <div style={{ position: "fixed", inset: 0 }}>
-      {/* Hidden file input for uploading demos */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="audio/*"
-        multiple
-        onChange={handleFileSelect}
-        style={{ display: "none" }}
-      />
-      {/* Upload Button for Demos */}
-      <div className="absolute mt-8 ml-8 z-50">
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className={`px-4 py-2 rounded text-white font-medium transition-transform duration-200 ease-in-out hover:scale-105 ${
-            isUploading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "animated-background bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500"
-          }`}
-        >
-          {isUploading ? "Uploading..." : "📁 Upload Demo"}
-        </button>
-      </div>
-
-      {/* Demos List with Waveforms - Resizable and Draggable */}
-      {demos.length > 0 && (
-        <Rnd
-          size={rndSize}
-          position={rndPosition}
-          onDragStop={(e, d) => setRndPosition({ x: d.x, y: d.y })}
-          onResizeStop={(e, direction, ref, delta, position) => {
-            setRndSize({
-              width: parseInt(ref.style.width),
-              height: parseInt(ref.style.height),
-            });
-            setRndPosition(position);
-          }}
-          minWidth={350}
-          minHeight={250}
-          maxWidth={800}
-          maxHeight={900}
-          bounds="parent"
-          dragHandleClassName="drag-handle"
-          className="z-50"
-        >
-          <div className="bg-white p-4 rounded shadow-lg h-full flex flex-col">
-            <h3 className="font-bold mb-2 truncate drag-handle cursor-move">
-              {demos.length === 1
-                ? demos[0].name
-                : `Audio Demos (${demos.length})`}
-            </h3>
-            <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
-              {/* Map over demos and render a player for each */}
-              {demos.map((demo) => (
-                <WaveformPlayer
-                  key={demo.id}
-                  audioUrl={demo.master_url}
-                  fileName={demo.name}
-                  demoid={demo.id}
-                  stems={demo.stems}
-                />
-              ))}
-            </div>
-          </div>
-        </Rnd>
-      )}
-
-      {/* tldraw Canvas */}
-      <Tldraw />
-    </div>
-  );
+	return (
+		<div style={{ position: "fixed", inset: 0 }}>
+			<Tldraw shapeUtils={customShapeUtils}>
+				<UI />
+			</Tldraw>
+		</div>
+	);
 }
+
