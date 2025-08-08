@@ -1,6 +1,72 @@
 graph TD
-    A[User] -->|Uploads Audio| B[Audio Bucket]
-    B -->|Stores Metadata| C[Supabase Database]
-    C -->|Fetches Data| D[WaveformPlayer Component]
-    D -->|Displays Audio| E[UI]
-    E -->|Interacts| A
+    %% Frontend Components
+    A[User] -->|Uploads Audio| B[Audio Upload Form]
+    B -->|Sends File| C[Whiteboard Component]
+    C -->|Triggers Action| D[Zustand Store]
+    D -->|Calls Service| E[Supabase Service Layer]
+
+    %% Backend Services
+    E -->|Uploads File| F[Supabase Storage]
+    E -->|Stores Metadata| G[Supabase Database]
+    G -->|Contains| H[Demos Table]
+    G -->|Contains| I[Stems Table]
+
+    %% Data Flow
+    H -->|Fetches Demos| J[FetchDemos Action]
+    I -->|Fetches Stems| J
+    J -->|Combines Data| K[Frontend State]
+    K -->|Updates| C
+
+    %% Audio Playback
+    C -->|Passes Data| L[WaveformPlayer Component]
+    L -->|Loads Audio| M[Audio Element]
+    M -->|Visualizes| N[Waveform Canvas]
+
+    %% User Interaction
+    A -->|Clicks Play| L
+    A -->|Uploads Stems| O[Stem Upload Form]
+    O -->|Triggers Action| P[UploadStem Action]
+    P -->|Calls Service| E
+    E -->|Uploads Stem| I
+
+    %% Authentication
+    A -->|Logs In| Q[Login Page]
+    Q -->|Authenticates| R[Supabase Auth]
+    R -->|Returns User| S[Frontend State]
+    S -->|Updates| C
+
+    %% Collaboration
+    A -->|Joins Project| T[Project Sidebar]
+    T -->|Fetches Projects| U[FetchProjects Action]
+    U -->|Calls Service| E
+    E -->|Queries| V[Projects Table]
+    V -->|Returns Data| T
+
+    %% Real-time Updates
+    G -->|Triggers| W[Supabase Realtime]
+    W -->|Updates| D
+    D -->|Updates| C
+
+    %% Error Handling
+    E -->|Throws Error| X[Error Boundary]
+    X -->|Displays| Y[Error Message UI]
+
+    %% Logging
+    E -->|Logs| Z[Console/Log Service]
+
+    %% Styling for Visual Appeal
+    classDef frontend fill:#E3F2FD,stroke:#2196F3,stroke-width:2px;
+    classDef backend fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px;
+    classDef dataFlow fill:#FFF3E0,stroke:#FF9800,stroke-width:2px;
+    classDef auth fill:#FCE4EC,stroke:#E91E63,stroke-width:2px;
+    classDef collaboration fill:#EDE7F6,stroke:#673AB7,stroke-width:2px;
+    classDef errorHandling fill:#FFEBEE,stroke:#F44336,stroke-width:2px;
+    classDef logging fill:#F5F5F5,stroke:#9E9E9E,stroke-width:2px;
+
+    class A,B,C,D,L,N,O,Q,S,T frontend;
+    class E,F,G,H,I,J,K,P,U,V,W backend;
+    class H,I,J,K dataFlow;
+    class Q,R,S auth;
+    class T,U,V collaboration;
+    class X,Y errorHandling;
+    class Z logging;
