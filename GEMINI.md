@@ -102,4 +102,4 @@ This section summarizes the implementation of a complete user authentication flo
 ## BUT...
 resetting password just logs the user in without any resetting of passwords. 
  
- Need to fix
+Nothing is reactive or interactive in waveformplayers now after implementing TLdraw APi and making waveformplayer scale like native TLdraw objects
