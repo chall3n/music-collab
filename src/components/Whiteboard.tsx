@@ -12,7 +12,6 @@ const Tldraw = dynamic(() => import("tldraw").then((mod) => mod.Tldraw), {
 });
 
 export default function Whiteboard() {
-  // Updated to use the new store structure and function names
   const { fetchDemos, uploadDemo, demos, isUploading } = useAudioStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
