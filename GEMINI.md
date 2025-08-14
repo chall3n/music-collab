@@ -103,3 +103,26 @@ This section summarizes the implementation of a complete user authentication flo
 resetting password just logs the user in without any resetting of passwords. 
  
 Nothing is reactive or interactive in waveformplayers now after implementing TLdraw APi and making waveformplayer scale like native TLdraw objects
+
+## Attempt to fix reset password bug
+
+1. Initial Password Reset Loop Fix (Configuration)
+       * Problem: The password reset email was redirecting to the generic login page, preventing actual password resets.
+       * Diagnosis: The Supabase email template and URL configuration were incorrect.
+       * Action: I guided you to correct the Site URL and Redirect URLs in your Supabase dashboard, and to ensure the password reset
+         email template pointed to /reset-password.
+
+
+   2. "Auth Session Missing!" & "Loading..." Fix (Code & Configuration)
+       * Problem: After the initial fix, the password reset page showed "Auth session missing!" or got stuck on a "Loading..." message.
+       * Diagnosis:
+           * Initially, I adjusted the useEffect in src/app/reset-password/page.tsx to listen for USER_UPDATED before redirecting, to
+             prevent premature redirects.
+           * However, the "Loading..." issue persisted, indicating the PASSWORD_RECOVERY event wasn't firing because the URL fragment
+             (containing the access token) was being stripped.
+       * Debugging: I added console.log('Current URL on mount:', window.location.href); to src/app/reset-password/page.tsx. Your test
+         confirmed the URL fragment was missing.
+       * Solution (Code): I updated next.config.ts to include trailingSlash: false. This prevents Vercel from stripping the URL fragment
+         during redirects.
+
+         
