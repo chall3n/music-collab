@@ -4,6 +4,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Auth } from '@supabase/auth-ui-react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { AuthChangeEvent } from '@supabase/supabase-js';
 
 export default function ResetPassword() {
   const supabase = createClientComponentClient();
@@ -23,7 +24,7 @@ export default function ResetPassword() {
       return;
     }
 
-    const handleAuthChange = async (event) => {
+    const handleAuthChange = async (event: AuthChangeEvent) => {
       if (event === 'PASSWORD_RECOVERY') {
         // This event fires after the user successfully resets their password.
         router.push('/login?message=Password reset successfully. Please log in.');
