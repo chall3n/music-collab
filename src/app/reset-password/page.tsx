@@ -2,7 +2,6 @@
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -24,7 +23,7 @@ export default function ResetPassword() {
       return;
     }
 
-    const handleAuthChange = async (event, session) => {
+    const handleAuthChange = async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
         // This event fires after the user successfully resets their password.
         router.push('/login?message=Password reset successfully. Please log in.');
@@ -38,7 +37,7 @@ export default function ResetPassword() {
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
-      }).then(({ data, error }) => {
+      }).then(({ error }) => {
         if (error) {
           setErrorMsg('Failed to process password reset link.');
         } else {
@@ -77,7 +76,6 @@ export default function ResetPassword() {
         {sessionReady ? (
           <Auth
             supabaseClient={supabase}
-            appearance={{ theme: ThemeSopa }}
             view="update_password"
             providers={[]}
           />
