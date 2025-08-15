@@ -15,6 +15,7 @@ export default function ResetPassword() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
+      console.log('Supabase auth event:', event)
       if (event === 'PASSWORD_RECOVERY') {
         setSessionReady(true)
       }
