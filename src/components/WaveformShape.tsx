@@ -27,8 +27,8 @@ export class WaveformShapeUtil extends BaseBoxShapeUtil<WaveformShape> {
 		}
 	}
 
-	// Render method
-	override render(shape: WaveformShape) {
+	// Component method
+	override component(shape: WaveformShape) {
 		return (
 			<div
 				style={{
