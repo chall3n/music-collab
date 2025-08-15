@@ -1,10 +1,10 @@
-
 'use client'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+// This component handles the reset password functionality using Supabase Auth
 
 export default function ResetPassword() {
   const supabase = createClientComponentClient()
@@ -12,9 +12,6 @@ export default function ResetPassword() {
   const [sessionReady, setSessionReady] = useState(false)
 
   useEffect(() => {
-    // Log the URL as soon as the component mounts on the client
-    console.log('Current URL on mount:', window.location.href);
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
