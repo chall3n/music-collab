@@ -1,5 +1,5 @@
 
-import { BaseBoxShapeUtil, TLBaseShape, Tldraw } from 'tldraw'
+import { BaseBoxShapeUtil, TLBaseShape } from 'tldraw'
 
 // A type for our custom shape
 export type WaveformShape = TLBaseShape<
@@ -15,8 +15,8 @@ export type WaveformShape = TLBaseShape<
 export class WaveformShapeUtil extends BaseBoxShapeUtil<WaveformShape> {
 	static override type = 'waveform' as const
 
-	override canResize = (shape: WaveformShape) => true
-	override canBind = (shape: WaveformShape) => true
+	override canResize = () => true
+	override canBind = () => true
 
 	// Default props
 	override getDefaultProps(): WaveformShape['props'] {

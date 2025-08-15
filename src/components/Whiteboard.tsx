@@ -32,7 +32,7 @@ export default function Whiteboard() {
         y: 16,
       });
     }
-  }, []); // Empty dependency array means it runs once on mount
+  }, [rndSize.width]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
