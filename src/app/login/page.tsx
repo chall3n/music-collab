@@ -1,16 +1,18 @@
-
 'use client'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function Login() {
   const supabase = createClientComponentClient()
   const router = useRouter()
+  const [redirectTo, setRedirectTo] = useState('')
 
   useEffect(() => {
+    setRedirectTo(`${window.location.origin}/auth/callback`)
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
@@ -25,12 +27,14 @@ export default function Login() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
       <div style={{ width: '320px' }}>
-        <Auth
-          supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
-          providers={['github', 'google']}
-          redirectTo={`${location.origin}/auth/callback`}
-        />
+        {redirectTo && (
+          <Auth
+            supabaseClient={supabase}
+            appearance={{ theme: ThemeSupa }}
+            providers={['github', 'google']}
+            redirectTo={redirectTo}
+          />
+        )}
       </div>
     </div>
   )
