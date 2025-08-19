@@ -2,7 +2,10 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAudioStore } from '../store/audioStore';
+import { useProjectStore } from '@/store/useProjectStore';
 import Whiteboard from '../components/Whiteboard'
+import ProjectSidebar from '../components/ProjectSidebar' // Add this import
 import type { User } from '@supabase/supabase-js'
 
 export default function Home() {
@@ -13,13 +16,16 @@ export default function Home() {
 
   useEffect(() => {
     async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        useProjectStore.getState().fetchProjects();
+      }
+      setLoading(false);
     }
 
-    getUser()
-  }, [supabase])
+    getUser();
+  }, [supabase]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -28,9 +34,11 @@ export default function Home() {
   }, [loading, user, router])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
+    useAudioStore.getState().clearDemos();
+    useProjectStore.getState().clearProjects();
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   if (loading) {
     return <div>Loading...</div>
@@ -49,6 +57,7 @@ export default function Home() {
         </button>
       </div>
       <Whiteboard />
+      <ProjectSidebar />
     </div>
   )
 }

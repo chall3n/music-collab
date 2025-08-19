@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import "tldraw/tldraw.css";
 import { useAudioStore } from "@/store/audioStore";
+import { useProjectStore } from "@/store/useProjectStore"; // Import project store
 import { useRef, useState, useEffect } from "react";
 import { Rnd } from "react-rnd";
 import WaveformPlayer from "./WaveformPlayer";
@@ -13,16 +14,17 @@ const Tldraw = dynamic(() => import("tldraw").then((mod) => mod.Tldraw), {
 
 export default function Whiteboard() {
   const { fetchDemos, uploadDemo, demos, isUploading } = useAudioStore();
+  const activeProjectId = useProjectStore((state) => state.activeProjectId);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State for react-rnd component
   const [rndSize, setRndSize] = useState({ width: 440, height: 400 });
   const [rndPosition, setRndPosition] = useState({ x: 0, y: 16 });
 
-  // Fetch demos when the component mounts (runs once)
+  // Fetch demos whenever the active project changes
   useEffect(() => {
     fetchDemos();
-  }, [fetchDemos]);
+  }, [fetchDemos, activeProjectId]);
 
   // Calculate initial position on the right side of the screen (runs once)
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function Whiteboard() {
         style={{ display: "none" }}
       />
       {/* Upload Button for Demos */}
-      <div className="absolute mt-8 ml-8 z-50">
+      <div className="absolute mt-8 ml-72 z-50">
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}

@@ -4,7 +4,6 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Auth } from '@supabase/auth-ui-react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AuthChangeEvent } from '@supabase/supabase-js';
 
 export default function ResetPassword() {
   const supabase = createClientComponentClient();
@@ -12,16 +11,21 @@ export default function ResetPassword() {
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    const handleAuthChange = (event: AuthChangeEvent) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setSessionReady(true);
-      }
+    // The password recovery link contains a URL fragment with the access token.
+    // We can detect this fragment to know that we should display the update password form.
+    if (window.location.hash.includes('access_token')) {
+      console.log('Access token found in URL, showing update form.');
+      setSessionReady(true);
+    }
+
+    // We still need to listen for the USER_UPDATED event to redirect the user
+    // after they have successfully updated their password.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'USER_UPDATED') {
+        console.log('User password updated, redirecting...');
         router.replace('/');
       }
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+    });
 
     return () => {
       subscription?.unsubscribe();
@@ -45,3 +49,4 @@ export default function ResetPassword() {
     </div>
   );
 }
+
