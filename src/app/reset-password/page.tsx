@@ -13,6 +13,7 @@ export default function ResetPassword() {
   useEffect(() => {
     // The password recovery link contains a URL fragment with the access token.
     // We can detect this fragment to know that we should display the update password form.
+    // Example fragment: #access_token=some-access-token
     if (window.location.hash.includes('access_token')) {
       console.log('Access token found in URL, showing update form.');
       setSessionReady(true);
