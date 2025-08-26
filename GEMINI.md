@@ -1,26 +1,34 @@
-### **Project Management Feature (Multi-User Collaboration):**
+### Tldraw Snapshot Persistence Functionality (Next.js 15.5.0)
 
-*   **Core Implementation:** Implemented project creation, user-to-project linking, and project-based filtering of demos/stems.
-*   **Supabase Schema:**
-    *   `projects` table: Stores project names.
-    *   `project_users` table: Links users (`auth.users.id`) to projects (`projects.id`).
-    *   `demos` table: Added `project_id` foreign key to link demos to projects.
-*   **Client-side State:** `useProjectStore` (Zustand) manages active project and user's project list.
-*   **Backend API:** `/api/projects` (GET/POST) handles project retrieval and creation, filtering by user membership.
-*   **UI:** `ProjectSidebar.tsx` for project selection/creation. `Whiteboard.tsx` now filters demos by active project.
+**Goal:** Implement real-time Tldraw editor snapshot saving and loading to/from Supabase, project-associated.
 
-### **Current Known Issue: Stale Demos on User Switch:**
+**Key Changes & Components:**
 
-*   **Problem:** After logging out and logging in as a different user, demos from the *previous* user's session briefly appear on the `Whiteboard`.
-*   **Attempted Fix:** Implemented `clearDemos()` in `useAudioStore` and `clearProjects()` in `useProjectStore`, called on logout.
-*   **Why it persists:** Likely a React rendering/Zustand state propagation timing issue. The component might briefly render with old state before the cleared state is fully reflected.
-*   **Next Steps/Debugging:** Need to investigate the exact timing of state updates and component re-renders.
+*   **`Whiteboard.tsx` (Client):**
+    *   Updated `tldraw` imports (`Editor`, `TLEditorSnapshot`, `loadSnapshot`).
+    *   Correctly typed `app` state and `onMount` callback with `Editor`.
+    *   `debouncedSave` now sends `TLEditorSnapshot` via `PATCH` to `/api/snapshot/update` for real-time saving.
+    *   New `useEffect` explicitly calls `loadSnapshot` when `activeProject?.tldraw_snapshot` changes, ensuring canvas updates.
+    *   `TldrawDynamic`'s `snapshot` prop now handles `null`/`undefined` correctly.
+    *   `debounce` utility function refined for better type safety.
+*   **`useProjectStore.ts` (Zustand Store):**
+    *   Imported `TLEditorSnapshot`.
+    *   `Project` interface updated with `tldraw_snapshot: TLEditorSnapshot | null;`.
+    *   `createProject`'s runtime type check now validates `newProject.tldraw_snapshot`, resolving column count mismatches.
+*   **`src/app/api/snapshot/update/route.ts` (Backend API):**
+    *   Handles `PATCH` requests to update `tldraw_snapshot` in Supabase `projects` table. Confirmed functional.
+*   **Supabase Database:**
+    *   `projects` table gained a `jsonb` `tldraw_snapshot` column.
+    *   `create_new_project` RPC function (implicitly) returns this new column.
 
-### **Next Feature (Planned):**
+**Potential Issues:**
 
-*   **Add User to Project:** Backend API (`/api/projects/[projectId]/users`) for adding users to a project by email (requires `SUPABASE_SERVICE_ROLE_KEY`). Frontend UI for this is pending.
+*   **`useCallback` Warning:** Persistent warning for `debouncedSave` in `Whiteboard.tsx` (non-critical).
+*   **`debounce` `any` types:** `debounce` function still uses `any` in its generic constraint (can be addressed with ESLint disable or more complex typing).
+*   **`create_new_project` RPC:** Assumed to return `tldraw_snapshot`; direct SQL verification needed if project creation issues persist.
 
-    **Real-time Sync:** Leverage Supabase Realtime subscriptions so that when one user uploads a demo, it instantly appears for all other users in the same project without needing a page refresh.
-
-    
-
+*   Things need to work before giving demo to Fatima
+    - creating new project and adding someone via email to it
+    - Tldraw persistance across projects (right now if you switch between projects it doesn't save)
+    - row level security (not super important)
+    - linting/deployment issues, need to have functioning version deployed to Vercel

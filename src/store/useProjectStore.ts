@@ -1,10 +1,12 @@
 
 import { create } from 'zustand';
+import { TLEditorSnapshot } from 'tldraw';
 
 interface Project {
   id: string;
   created_at: string;
   name: string;
+  tldraw_snapshot: TLEditorSnapshot | null;
 }
 
 interface ProjectState {
