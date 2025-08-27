@@ -13,7 +13,7 @@ export async function POST(request: Request, { params }: { params: { projectId: 
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId } = await params;
+    const { projectId } = params;
     const { email: collaboratorEmail } = await request.json();
 
     if (!collaboratorEmail) {
