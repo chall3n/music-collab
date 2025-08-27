@@ -57,10 +57,31 @@ export async function POST(request: Request) {
       return new NextResponse('Project name is required', { status: 400 });
     }
 
-    const { data, error } = await supabase.rpc('create_new_project', {
-      project_name: name,
-      user_id: session.user.id,
-    });
+    // 1. Create new row in projects table
+    const { data: newProjectData, error: projectError } = await supabase
+      .from('projects')
+      .insert({ name: name })
+      .select('id, created_at, name, tldraw_snapshot') // Select all expected columns
+      .single();
+
+    if (projectError) {
+      console.error('Error creating project:', projectError);
+      return new NextResponse('Internal Server Error', { status: 500 });
+    }
+
+    // 2. Associate that project with the user in project_users table
+    const { error: projectUserError } = await supabase
+      .from('project_users')
+      .insert({ project_id: newProjectData.id, user_id: session.user.id });
+
+    if (projectUserError) {
+      console.error('Error associating user with project:', projectUserError);
+      // Consider rolling back project creation here if necessary
+      return new NextResponse('Internal Server Error', { status: 500 });
+    }
+
+    // 3. Return the new project data
+    return NextResponse.json(newProjectData);
 
     if (error) {
       console.error('Error creating project:', error);

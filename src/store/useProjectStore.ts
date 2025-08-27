@@ -82,7 +82,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // Basic runtime type-checking for new project
       if (!(typeof newProject.id === 'string' && 
             typeof newProject.created_at === 'string' && 
-            typeof newProject.name === 'string')) {
+            typeof newProject.name === 'string' &&
+            (newProject.tldraw_snapshot === null || typeof newProject.tldraw_snapshot === 'object'))) { // Check for null or object type
         console.error('API response for new project is not in expected format.', newProject);
         return false;
       }

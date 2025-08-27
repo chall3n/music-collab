@@ -11,8 +11,13 @@ export default function ProjectSidebar() {
     createProject,
   } = useProjectStore();
   
+  
+
   const [newProjectName, setNewProjectName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [collaboratorEmail, setCollaboratorEmail] = useState("");
+  const [addCollaboratorMessage, setAddCollaboratorMessage] = useState("");
+  const [isAddingCollaborator, setIsAddingCollaborator] = useState(false);
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return;
@@ -22,6 +27,48 @@ export default function ProjectSidebar() {
       setNewProjectName("");
     }
     setIsCreating(false);
+  };
+
+  const handleAddCollaborator = async () => {
+    if (!collaboratorEmail.trim() || !activeProjectId) {
+      setAddCollaboratorMessage("Please enter an email and select a project.");
+      return;
+    }
+    setIsAddingCollaborator(true);
+    setAddCollaboratorMessage(""); // Clear previous messages
+
+    try {
+      const response = await fetch(`/api/projects/${activeProjectId}/add-collaborator`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: collaboratorEmail.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setAddCollaboratorMessage(data.message || "Collaborator added successfully!");
+        setCollaboratorEmail(""); // Clear input on success
+      } else {
+        // Handle specific error messages from the API
+        if (response.status === 404) {
+          setAddCollaboratorMessage("Collaborator user not found. Please ensure they have signed up.");
+        } else if (response.status === 409) {
+          setAddCollaboratorMessage("User is already a collaborator on this project.");
+        } else if (data.message) {
+          setAddCollaboratorMessage(`Error: ${data.message}`);
+        } else {
+          setAddCollaboratorMessage(`Error: ${response.statusText || "Something went wrong."}`);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to add collaborator:", error);
+      setAddCollaboratorMessage("Failed to add collaborator. Please try again.");
+    } finally {
+      setIsAddingCollaborator(false);
+    }
   };
 
   return (
@@ -45,22 +92,48 @@ export default function ProjectSidebar() {
           ))}
         </ul>
       </div>
-      <div className="mt-4">
+      <div className="mt-4 border-t border-gray-700 pt-4">
+        <h3 className="text-md font-bold mb-2">Create New Project</h3>
         <input
           type="text"
           value={newProjectName}
           onChange={(e) => setNewProjectName(e.target.value)}
           placeholder="New project name..."
-          className="w-full px-2 py-1 rounded bg-gray-700 text-white"
+          className="w-full px-2 py-1 rounded bg-gray-700 text-white mb-2"
         />
         <button
           onClick={handleCreateProject}
           disabled={isCreating || !newProjectName.trim()}
-          className="w-full mt-2 px-2 py-1 rounded bg-green-600 hover:bg-green-700 disabled:bg-gray-500"
+          className="w-full px-2 py-1 rounded bg-green-600 hover:bg-green-700 disabled:bg-gray-500"
         >
           {isCreating ? "Creating..." : "Create Project"}
         </button>
       </div>
+
+      {activeProjectId && (
+        <div className="mt-4 border-t border-gray-700 pt-4">
+          <h3 className="text-md font-bold mb-2">Add Collaborator to Current Project</h3>
+          <input
+            type="email"
+            value={collaboratorEmail}
+            onChange={(e) => setCollaboratorEmail(e.target.value)}
+            placeholder="Collaborator's email..."
+            className="w-full px-2 py-1 rounded bg-gray-700 text-white mb-2"
+          />
+          <button
+            onClick={handleAddCollaborator}
+            disabled={isAddingCollaborator || !collaboratorEmail.trim()}
+            className="w-full px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500"
+          >
+            {isAddingCollaborator ? "Adding..." : "Add Collaborator"}
+          </button>
+          {addCollaboratorMessage && (
+            <p className="mt-2 text-sm" style={{ color: addCollaboratorMessage.includes("Error") || addCollaboratorMessage.includes("not found") || addCollaboratorMessage.includes("already") ? "red" : "lightgreen" }}>
+              {addCollaboratorMessage}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
