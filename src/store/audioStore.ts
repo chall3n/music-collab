@@ -27,7 +27,7 @@ interface AudioState {
   clearDemos: () => void;
 }
 
-export const useAudioStore = create<AudioState>((set, get) => ({
+export const useAudioStore = create<AudioState>((set) => ({
   demos: [],
   isUploading: false,
 

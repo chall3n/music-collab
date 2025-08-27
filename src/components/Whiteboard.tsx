@@ -10,7 +10,7 @@ import WaveformPlayer from "./WaveformPlayer";
 import { Editor, TLEditorSnapshot, loadSnapshot } from 'tldraw'; // Updated import
 
 // Debounce utility to avoid saving on every single change
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+function debounce<T extends (...args: unknown[]) => unknown>(func: T, wait: number): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
@@ -63,17 +63,14 @@ export default function Whiteboard() {
   }, []);
 
   // Debounced function to save the snapshot to our new static API route
-  const debouncedSave = useCallback(
-    debounce((snapshot: TLEditorSnapshot) => { // Updated type
-      if (!activeProjectId) return;
-      fetch('/api/snapshot/update', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ snapshot: snapshot, projectId: activeProjectId }),
-      });
-    }, 500),
-    [activeProjectId]
-  );
+  const debouncedSave = useRef(debounce((snapshot: TLEditorSnapshot) => {
+    if (!activeProjectId) return;
+    fetch('/api/snapshot/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ snapshot: snapshot, projectId: activeProjectId }),
+    });
+  }, 500)).current;
 
   // Listen for changes in the tldraw store and save them
   useEffect(() => {
