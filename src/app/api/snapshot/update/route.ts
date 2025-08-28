@@ -30,10 +30,14 @@ export async function PATCH(request: Request) {
     }
 
     // Update the tldraw_snapshot for the given project
-    const { error: updateError } = await supabase
+    const { data: updatedData, error: updateError } = await supabase
       .from('projects')
       .update({ tldraw_snapshot: snapshot })
-      .eq('id', projectId);
+      .eq('id', projectId)
+      .select();
+
+    // Log the outcome of the update operation
+    console.log('Supabase update result:', { data: updatedData, error: updateError });
 
     if (updateError) {
       console.error('Error updating snapshot:', updateError);

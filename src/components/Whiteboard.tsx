@@ -63,12 +63,13 @@ export default function Whiteboard() {
   }, []);
 
   // Debounced function to save the snapshot to our new static API route
-  const debouncedSave = useRef(debounce((snapshot: TLEditorSnapshot) => {
-    if (!activeProjectId) return;
+  const debouncedSave = useRef(debounce((snapshot: TLEditorSnapshot, projectId: string) => {
+    if (!projectId) return;
+    console.log(`Client-side: Triggering snapshot save for project ${projectId}`);
     fetch('/api/snapshot/update', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ snapshot: snapshot, projectId: activeProjectId }),
+      body: JSON.stringify({ snapshot: snapshot, projectId: projectId }),
     });
   }, 500)).current;
 
@@ -77,8 +78,11 @@ export default function Whiteboard() {
     if (!app) return;
 
     const listener = () => {
-      const snapshot = app.getSnapshot();
-      debouncedSave(snapshot);
+      const currentProjectId = useProjectStore.getState().activeProjectId;
+      if (currentProjectId) {
+        const snapshot = app.getSnapshot();
+        debouncedSave(snapshot, currentProjectId);
+      }
     };
 
     const unsubscribe = app.store.listen(listener);
