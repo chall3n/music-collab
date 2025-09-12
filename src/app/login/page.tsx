@@ -30,7 +30,16 @@ export default function Login() {
         {redirectTo && (
           <Auth
             supabaseClient={supabase}
-            appearance={{ theme: ThemeSupa }}
+            appearance={{
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    inputBackground: 'white',
+                  },
+                },
+              },
+            }}
             providers={[]}
             redirectTo={redirectTo}
           />

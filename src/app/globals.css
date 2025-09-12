@@ -12,12 +12,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+
 
 body {
   background: var(--background);
@@ -66,4 +61,46 @@ body {
    this targets a common container for top-left UI elements in tldraw. */
 .tlui-layout__top-left .tlui-buttons__horizontal {
   display: none !important;
+}
+
+/* Glowing Animated Border Effect */
+.glowing-border {
+  position: relative;
+  border: 3px solid transparent; /* Adjust border width as needed */
+  border-radius: 0.5rem; /* Match Tailwind's rounded-lg (8px) */
+  background-clip: padding-box;
+  overflow: hidden;
+}
+
+.glowing-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0.5rem; /* Match parent's border-radius */
+  padding: 3px; /* Same as border-width */
+  background: linear-gradient(45deg, #00c6ff, #0072ff, #00c6ff); /* Blue gradient from CodePen */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glowing-border-animation 2s linear infinite;
+  background-size: 200% 200%; /* For animation */
+  box-shadow: 0 0 15px 5px rgba(0, 114, 255, 0.7);
+  z-index: 2;
+  pointer-events: none;
+}
+
+@keyframes glowing-border-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }

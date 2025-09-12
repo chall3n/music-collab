@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Play, Pause } from "lucide-react";
+import WaveSurfer from "wavesurfer.js";
 import { useGlobalAudioStore, useAudioStore } from "../store/audioStore";
 
 // Updated to reflect the new data model from the store
@@ -18,139 +19,88 @@ interface WaveformPlayerProps {
   stems: Stem[]; // Stems are now passed in as a prop
 }
 
+// Helper function to format time
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
 const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   audioUrl,
   fileName,
   demoid,
   stems,
 }) => {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const wavesurferRef = useRef<WaveSurfer | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [duration, setDuration] = useState<number>(0);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [audioData, setAudioData] = useState<number[]>([]);
 
   const { currentAudio, setCurrentAudio } = useGlobalAudioStore();
-  const { uploadStem } = useAudioStore(); // Get the uploadStem function
+  const { uploadStem } = useAudioStore();
 
-  // Generate fake waveform data for visualization
   useEffect(() => {
-    const generateWaveform = () => {
-      const data: number[] = [];
-      for (let i = 0; i < 100; i++) {
-        data.push(Math.random() * 0.8 + 0.1);
-      }
-      setAudioData(data);
-    };
-    generateWaveform();
-  }, []);
+    if (!containerRef.current) return;
 
-  // Draw waveform on canvas
-  useEffect(() => {
-    if (canvasRef.current && audioData.length > 0) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+    const ws = WaveSurfer.create({
+      container: containerRef.current,
+      // These options make the waveform look more like SoundCloud's
+      waveColor: "#A8A8A8",
+      progressColor: "#7C3AED",
+      barWidth: 1,
+      barGap: 3,
+      barRadius: 4,
+      height: 64, // Corresponds to h-16
+      url: audioUrl,
+      // Make the cursor invisible, as we are not using it
+      cursorWidth: 0,
+    });
 
-      canvas.width = canvas.offsetWidth * 2;
-      canvas.height = canvas.offsetHeight * 2;
-      ctx.scale(2, 2);
+    wavesurferRef.current = ws;
 
-      ctx.fillStyle = "#f3f4f6";
-      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-
-      const barWidth = canvas.offsetWidth / audioData.length;
-      const centerY = canvas.offsetHeight / 2;
-
-      audioData.forEach((amplitude, i) => {
-        const barHeight = amplitude * centerY;
-        const x = i * barWidth;
-        const progress = duration > 0 ? currentTime / duration : 0;
-        const isPlayed = i / audioData.length < progress;
-        ctx.fillStyle = isPlayed ? "#7C3AED" : "#4F46E5";
-        ctx.fillRect(x, centerY - barHeight / 2, barWidth - 1, barHeight);
-      });
-
-      if (duration > 0) {
-        const progress = currentTime / duration;
-        const cursorX = progress * canvas.offsetWidth;
-        ctx.strokeStyle = "#EF4444";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(cursorX, 0);
-        ctx.lineTo(cursorX, canvas.offsetHeight);
-        ctx.stroke();
-      }
-    }
-  }, [audioData, currentTime, duration]);
-
-  // Audio event handlers
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
+    ws.on("ready", () => {
+      setDuration(ws.getDuration());
       setIsLoading(false);
-    };
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
-    const handleError = () => setIsLoading(false);
+    });
 
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("play", handlePlay);
-    audio.addEventListener("pause", handlePause);
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError);
+    ws.on("audioprocess", () => {
+      setCurrentTime(ws.getCurrentTime());
+    });
 
+    ws.on("play", () => {
+      setIsPlaying(true);
+      // Set this instance as the globally playing one
+      setCurrentAudio(ws);
+    });
+
+    ws.on("pause", () => {
+      setIsPlaying(false);
+    });
+
+    ws.on("finish", () => {
+      setIsPlaying(false);
+    });
+
+    // Cleanup
     return () => {
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("play", handlePlay);
-      audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
+      ws.destroy();
     };
-  }, []);
+  }, [audioUrl, setCurrentAudio]);
 
-  const togglePlayPause = async () => {
-    const audio = audioRef.current;
-    if (!audio || isLoading) return;
+  const togglePlayPause = useCallback(() => {
+    if (isLoading || !wavesurferRef.current) return;
 
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      if (currentAudio && currentAudio !== audio) {
-        currentAudio.pause();
-      }
-      setCurrentAudio(audio);
-      await audio.play();
+    // If another audio is playing, pause it
+    if (currentAudio && currentAudio !== wavesurferRef.current) {
+      currentAudio.pause();
     }
-  };
 
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const audio = audioRef.current;
-    const canvas = canvasRef.current;
-    if (!audio || !canvas || duration === 0) return;
+    wavesurferRef.current.playPause();
+  }, [isLoading, currentAudio, setCurrentAudio]);
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const progress = x / rect.width;
-    audio.currentTime = progress * duration;
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  // New handler that calls the store action
   const handleStemUpload = async (files: FileList) => {
     for (const file of Array.from(files)) {
       try {
@@ -163,7 +113,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   };
 
   return (
-    <div className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+    <div className={`p-3 bg-white rounded-lg border border-gray-200 shadow-sm ${isPlaying ? "glowing-border" : ""}`}>
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-medium text-gray-900 truncate flex-1 mr-2">
           {fileName}
@@ -174,26 +124,22 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
       </div>
 
       <div className="mb-3 relative">
-        {isLoading ? (
-          <div className="h-16 bg-gray-100 rounded-md animate-pulse flex items-center justify-center">
-            <span className="text-xs text-gray-500">Loading audio...</span>
+        {/* This div is where the waveform will be rendered */}
+        <div ref={containerRef} className="w-full h-16" />
+        {isLoading && (
+          <div className="absolute inset-0 h-16 bg-gray-100 rounded-md animate-pulse flex items-center justify-center">
+            <span className="text-xs text-gray-500">Loading waveform...</span>
           </div>
-        ) : (
-          <canvas
-            ref={canvasRef}
-            onClick={handleCanvasClick}
-            className="w-full h-16 cursor-pointer rounded-md border border-gray-200 hover:border-blue-300 transition-colors"
-          />
         )}
       </div>
 
-      <audio ref={audioRef} src={audioUrl} preload="metadata" style={{ display: "none" }} />
+      {/* We no longer need the <audio> element, Wavesurfer handles it */}
 
       <div className="flex items-center justify-center">
         <button
           onClick={togglePlayPause}
           disabled={isLoading}
-          className="flex items-center justify-center w-12 h-12 bg-transparent text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 transition-colors focus:outline-none"
+          className="flex items-center justify-center w-12 h-12 bg-transparent text-indigo-600 hover:text-indigo-800 disabled:text-gray-400 transition-colors focus:outline-none cursor-pointer"
           aria-label={isPlaying ? "Pause" : "Play"}
         >
           {isPlaying ? <Pause size={32} /> : <Play size={32} />}
@@ -211,7 +157,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
         />
         <button
           onClick={() => document.getElementById(`upload-stems-${demoid}`)?.click()}
-          className="mt-2 w-full text-white px-4 py-2 rounded-xl text-sm animated-background bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500 transition-transform duration-200 ease-in-out hover:scale-102"
+          className="mt-2 w-full text-white px-4 py-2 rounded-xl text-sm animated-background bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500 transition-transform duration-200 ease-in-out"
         >
           Upload Stems
         </button>

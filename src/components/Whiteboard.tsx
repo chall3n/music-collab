@@ -71,7 +71,7 @@ export default function Whiteboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ snapshot: snapshot, projectId: projectId }),
     });
-  }, 500)).current;
+  }, 2000)).current;
 
   // Listen for changes in the tldraw store and save them
   useEffect(() => {
