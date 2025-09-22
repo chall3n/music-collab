@@ -5,6 +5,9 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+//need to add explanation of what App is/does for demo
+//few slides showing capabilites and what's it's good for
+
 export default function Login() {
   const supabase = createClientComponentClient()
   const router = useRouter()
