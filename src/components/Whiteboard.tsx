@@ -73,7 +73,7 @@ export default function Whiteboard() {
     });
   }, 2000)).current;
 
-  // Listen for changes in the tldraw store and save them
+  // Listen for changes in the tldraw store and save themz
   useEffect(() => {
     if (!app) return;
 
