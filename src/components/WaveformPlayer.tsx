@@ -113,7 +113,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   };
 
   return (
-    <div className={`p-3 bg-white rounded-lg border border-gray-200 shadow-sm ${isPlaying ? "glowing-border" : ""}`}>
+    <div data-testid="waveform-player-container" className={`p-3 bg-white rounded-lg border border-gray-200 shadow-sm ${isPlaying ? "glowing-border" : ""}`}>
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-medium text-gray-900 truncate flex-1 mr-2">
           {fileName}
@@ -157,7 +157,7 @@ const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
         />
         <button
           onClick={() => document.getElementById(`upload-stems-${demoid}`)?.click()}
-          className="mt-2 w-full text-white px-4 py-2 rounded-xl text-sm animated-background bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500 transition-transform duration-200 ease-in-out"
+          className="mt-2 w-full text-white px-4 py-2 rounded-xl text-sm animated-background bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500 transition-transform duration-200 ease-in-out cursor-pointer"
         >
           Upload Stems
         </button>
