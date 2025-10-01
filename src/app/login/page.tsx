@@ -29,7 +29,7 @@ export default function Login() {
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <div style={{ width: '320px' }}>
+      <div style={{ width: '380px' }}>
         {redirectTo && (
           <Auth
             supabaseClient={supabase}
