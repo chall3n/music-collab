@@ -52,8 +52,8 @@ export default function Login() {
   }, [supabase, router])
 
   return (
-    <div className="flex flex-row items-center justify-center min-h-screen p-8">
-      <div className="w-full max-w-3xl shadow-md mr-12">
+    <div className="flex flex-col lg:flex-row items-center justify-center min-h-screen p-8">
+      <div className="w-full max-w-lg mb-16 lg:max-w-3xl shadow-md lg:mr-12 lg:mb-0">
         <div className="embla rounded-lg border-0 bg-card text-card-foreground shadow-sm overflow-hidden">
           <div className="overflow-hidden" ref={emblaRef}>
             <div className="flex">
@@ -71,7 +71,7 @@ export default function Login() {
           </div>
         </div>
       </div>
-      <div className="w-full max-w-md flex flex-col space-y-8 border-l border-gray-200 pl-8">
+      <div className="w-full max-w-md flex flex-col space-y-8 border-l border-gray-100/5 lg:border-gray-200 lg:pl-8">
         <h1 className="text-3xl font-extrabold text-center">
           Collab.e
         </h1>
@@ -83,6 +83,9 @@ export default function Login() {
               variables: {
                 default: {
                   colors: {
+                    brand: '#3b82f6',
+                    brandAccent: '#60a5fa',
+                    brandButtonText: 'white',
                     inputBackground: 'white',
                   },
                 },
